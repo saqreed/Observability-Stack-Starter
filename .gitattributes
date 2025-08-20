@@ -1,0 +1,27 @@
+# Auto-detect text files and normalize line endings
+* text=auto eol=lf
+
+# Keep images/binaries untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Windows-specific: ensure shell scripts keep LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Keep Go files as text with LF
+*.go text eol=lf
+
+# YAML/JSON/MD as text with LF
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Do not normalize minified files
+*.min.js -text
+*.min.css -text

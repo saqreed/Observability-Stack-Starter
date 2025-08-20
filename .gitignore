@@ -1,0 +1,58 @@
+# OS / Editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+*.code-workspace
+
+# Env / Secrets
+.env
+.env.*
+*.secret
+*.key
+
+# Logs / Data
+*.log
+logs/
+logs_data/
+shared-logs/
+/tmp/
+/tmp/**
+
+# Docker
+**/.docker/
+.dockerignore
+# Compose override files
+/docker-compose.override.yml
+
+# Go build artifacts
+**/*.exe
+**/*.dll
+**/*.so
+**/*.test
+**/*.out
+bin/
+dist/
+cover.out
+
+# Node (if any tooling is added later)
+node_modules/
+
+# Python (if any tooling is added later)
+__pycache__/
+*.pyc
+
+# Terraform (if added later)
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Mac tarball artifacts
+*.tar.gz
+*.zip
+
+# VS / JetBrains
+*.iml
+out/
