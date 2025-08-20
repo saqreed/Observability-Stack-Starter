@@ -1,0 +1,57 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+rule_files:
+  - "alerting/*.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "node"
+    static_configs:
+      - targets: ["node_exporter:9100"]
+
+  # Example application (adjust or add your own services)
+  - job_name: "hello-api"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["hello-api:8080"]
+        labels: { service: "hello-api" }
+
+  # Blackbox HTTP probes
+  - job_name: "blackbox-http"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://prometheus:9090
+          - http://grafana:3000/login
+          - http://kibana:5601
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: blackbox:9115
+      - source_labels: [__param_target]
+        target_label: instance
+
+  # ICMP probes (requires NET_RAW in blackbox container, which is granted by default image)
+  - job_name: "blackbox-icmp"
+    metrics_path: /probe
+    params:
+      module: [icmp]
+    static_configs:
+      - targets:
+          - 1.1.1.1
+          - 8.8.8.8
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: blackbox:9115
+      - source_labels: [__param_target]
+        target_label: instance

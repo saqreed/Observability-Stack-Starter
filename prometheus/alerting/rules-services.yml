@@ -1,0 +1,20 @@
+groups:
+- name: services.rules
+  interval: 30s
+  rules:
+  - record: service:request_total:rate5m
+    expr: sum by(service) (rate(http_requests_total[5m]))
+  - record: service:request_good:rate5m
+    expr: sum by(service) (rate(http_requests_total{code!~"5.."}[5m]))
+  - record: service:availability:ratio5m
+    expr: service:request_good:rate5m / service:request_total:rate5m
+
+  - record: service:latency_ms:p95_5m
+    expr: 1000 * histogram_quantile(0.95, sum by (service, le) (rate(http_request_duration_seconds_bucket[5m])))
+
+  - alert: LatencyP95TooHigh_HelloAPI
+    expr: service:latency_ms:p95_5m{service="hello-api"} > 250
+    for: 10m
+    labels: { severity: "warning" }
+    annotations:
+      summary: "p95 latency > 250ms (hello-api)"

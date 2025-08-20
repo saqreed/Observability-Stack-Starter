@@ -1,0 +1,35 @@
+groups:
+- name: slo.rules
+  interval: 30s
+  rules:
+  - record: service:request_total:rate1h
+    expr: sum by(service) (rate(http_requests_total[1h]))
+  - record: service:request_good:rate1h
+    expr: sum by(service) (rate(http_requests_total{code!~"5.."}[1h]))
+  - record: service:availability:ratio1h
+    expr: service:request_good:rate1h / service:request_total:rate1h
+
+  # Burn rate vs 99.5% target (hello-api)
+  - record: slo:availability:burnrate5m
+    expr: (1 - service:availability:ratio5m{service="hello-api"}) / 0.005
+  - record: slo:availability:burnrate1h
+    expr: (1 - service:availability:ratio1h{service="hello-api"}) / 0.005
+  - alert: SLOAvailabilityFastBurn_HelloAPI
+    expr: slo:availability:burnrate5m > 14.4 and slo:availability:burnrate1h > 14.4
+    for: 5m
+    labels: { severity: "critical", service: "hello-api" }
+    annotations:
+      summary: "SLO burn rate FAST (hello-api)"
+      description: "Error budget burning too fast (5m & 1h > 14.4)."
+
+  - record: slo:availability:burnrate30m
+    expr: (1 - (sum by(service) (rate(http_requests_total{service="hello-api",code!~"5.."}[30m])) / sum by(service) (rate(http_requests_total{service="hello-api"}[30m])))) / 0.005
+  - record: slo:availability:burnrate6h
+    expr: (1 - (sum by(service) (rate(http_requests_total{service="hello-api",code!~"5.."}[6h])) / sum by(service) (rate(http_requests_total{service="hello-api"}[6h])))) / 0.005
+  - alert: SLOAvailabilitySlowBurn_HelloAPI
+    expr: slo:availability:burnrate30m > 6 and slo:availability:burnrate6h > 6
+    for: 30m
+    labels: { severity: "warning", service: "hello-api" }
+    annotations:
+      summary: "SLO burn rate SLOW (hello-api)"
+      description: "Budget burns above 6x on 30m & 6h."

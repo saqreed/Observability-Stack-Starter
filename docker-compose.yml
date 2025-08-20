@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerting:/etc/prometheus/alerting:ro
+      - ./prometheus/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+      - prom_data:/prometheus
+    ports: ["9090:9090"]
+    depends_on:
+      - alertmanager
+      - blackbox
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/templates:/etc/alertmanager/templates:ro
+      - alert_data:/alertmanager
+    ports: ["9093:9093"]
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.25.0
+    volumes:
+      - ./prometheus/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    ports: ["9115:9115"]
+
+  node_exporter:
+    image: prom/node-exporter:v1.8.2
+    command: ["--path.rootfs=/host"]
+    pid: host
+    volumes:
+      - /:/host:ro,rshared
+    ports: ["9100:9100"]
+
+  hello-api:
+    build:
+      context: ./services/hello-api
+      dockerfile: Dockerfile
+    image: local/hello-api:latest
+    ports: ["8080:8080"]
+    depends_on: [prometheus]
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - graf_data:/var/lib/grafana
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports: ["9200:9200"]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports: ["5601:5601"]
+    depends_on: [elasticsearch]
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.13.4
+    user: root
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - logs_data:/shared-logs
+    depends_on: [elasticsearch]
+    command: ["--strict.perms=false"]
+
+  logger:
+    image: busybox:1.36
+    command: sh -c "mkdir -p /logs && while true; do echo \"$(date -Iseconds) info sample log from logger\" >> /logs/app.log; sleep 2; done"
+    volumes:
+      - logs_data:/logs
+
+volumes:
+  prom_data:
+  alert_data:
+  graf_data:
+  es_data:
+  logs_data:

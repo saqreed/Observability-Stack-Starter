@@ -1,0 +1,15 @@
+groups:
+- name: infra.rules
+  interval: 30s
+  rules:
+  - alert: NodeDown
+    expr: up{job="node"} == 0
+    for: 2m
+    labels: { severity: "critical" }
+    annotations:
+      summary: "Node Exporter is down"
+
+  - alert: ElasticsearchRed
+    expr: elasticsearch_cluster_health_status{color="red"} == 1
+    for: 2m
+    labels: { severity: "critical" }

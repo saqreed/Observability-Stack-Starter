@@ -1,0 +1,33 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "default"
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  routes:
+    - matchers: [ severity="critical" ]
+      receiver: "pager"
+      repeat_interval: 1h
+    - matchers: [ severity="warning" ]
+      receiver: "chat"
+
+receivers:
+  - name: "default"
+    email_configs:
+      - to: ${ALERT_EMAIL_TO}
+
+  - name: "pager"
+    webhook_configs:
+      - url: "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+        send_resolved: true
+        http_config:
+          bearer_token_file: /dev/null
+        max_alerts: 0
+        # Telegram expects JSON body; use templating or a small webhook relay in production.
+
+  - name: "chat"
+    email_configs:
+      - to: ${ALERT_EMAIL_TO}

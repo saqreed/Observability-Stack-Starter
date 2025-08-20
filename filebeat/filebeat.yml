@@ -1,0 +1,15 @@
+filebeat.inputs:
+  - type: filestream
+    id: shared-logs
+    enabled: true
+    paths:
+      - /shared-logs/*.log
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "logs-%{+yyyy.MM.dd}"
+
+setup.ilm.enabled: true
+setup.ilm.policy_name: "logs-ilm"
+setup.template.name: "logs-template"
+setup.template.pattern: "logs-*"
